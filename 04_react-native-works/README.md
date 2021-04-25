@@ -35,9 +35,11 @@ Metro.loadConfig()
 
 ## bridge
 
+![브릿지](https://www.reactnative.guide/assets/images/rn-architecture.png)
+
 ![bridge](/_img/bridge.png)
 
-- 서로 분리되어있는 JS 스레드와 native 스레드의 소통은 bridge라는 것으로 이루어지는데, React Native의 core를 이룬다. 다음과 같은 3가지 특징을 가짐
+- 서로 분리되어있는 JS 스레드와 native 스레드의 소통은 bridge라는 것으로 이루어지는데, 다음과 같은 3가지 특징을 가짐
   - asynchronous : 스레드간 비동기적으로 소통한다. 서로가 서로의 스레드를 블락하지 않는다. 단점으로는 UI 반응이 늦을 수도 있음. UI가 업데이트되도 동기적으로 state가 업데이트 되지 않을수도 있음(근데 이건 뭐 감수해야 될듯). 네이티브는 스레드 통신 없이 바로 state를 업데이트하고 view를 갈아치우는게 가능.
   - batched : 소통은 최적화된 방식으로 한다. (JSON의 형태로 소통한다고)
   - serializable : 두 스레드는 같은 데이터를 공유하지 않는다. 대신에 스레드는 직렬화된 메시지를 교환한다.
@@ -58,7 +60,7 @@ Metro.loadConfig()
 
 ## 그렇다면 Native Module을 직접 건드려야 할 때는 어딜 건드려야 되는거지
 
-- 각각의 native module내부에서 native 언어로 UI를 짜고, RN의 모듈과 연결시켜서 RN에서 쓰면 되는걸까?
+- 각각의 native module내부에서 native 언어로 UI를 짜고, RN의 모듈과 연결(link)시켜서 RN에서 쓰면 되는걸까?
 - [그런거 같음](https://reactnative.dev/docs/native-modules-ios)
 
 ## 심화) Fabric

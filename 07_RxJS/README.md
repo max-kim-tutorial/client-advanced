@@ -1,4 +1,4 @@
-# RxJS
+# RXJS
 
 빨리 써먹기 위해 독스를 정리해 봅니다
 
@@ -107,6 +107,8 @@ fromEvent(document, "click")
 ```
 
 ## 2. Observable
+
+구독을 당하는 친구
 
 ### lazy push collection of multiple values
 
@@ -321,10 +323,476 @@ const observable = new Observable(function subscribe(subscriber) {
 - subscribe 메서드가 리턴하는 값인 subscription은 실행 취소를 위한 API를 가지고 있음
 
 ```js
-mport { from } from 'rxjs';
+import { from } from "rxjs";
 
 const observable = from([10, 20, 30]);
-const subscription = observable.subscribe(console.log);
+const subscription = observable.subscribe((x) => console.log(x));
 
 subscription.unsubscribe();
 ```
+
+## 3. Observer
+
+구독을 하는 얘
+
+### 설명
+
+- Observable이 제공하는 값을 소비하는 친구. 콜백의 나열로 이루어진 객체이며, 각각의 프로퍼티들은 옵저버블이 제공한 값에 대해 notification을 표시함
+
+```js
+const observer = {
+  next: (x) => console.log("Observer got a next value: " + x),
+  error: (err) => console.error("Observer got an error: " + err),
+  complete: () => console.log("Observer got a complete notification"),
+};
+
+// 이 객체를 subscribe 메소드의 인자로 넣어준다
+observable.subscribe(observer);
+```
+
+- observer에 콜백을 태우지 않는다면 observable의 호출은 일반적으로 진행되지만, corresponding callback이 없을 경우 특정 notification이 무시될 수 있다. => 콜백을 안쓰면 특정 동작에서 걍 넘어간다
+
+```js
+// 컴플릿 콜백이 없는 경우
+const observer = {
+  next: (x) => console.log("Observer got a next value: " + x),
+  error: (err) => console.error("Observer got an error: " + err),
+};
+```
+
+- 그냥 인자로 콜백을 하나만 넣으면 그건 next다
+
+```js
+observable.subscribe((x) => console.log("Observer got a next value: " + x));
+```
+
+## 3. 각종 Operator
+
+- 오퍼레이터들은 함수다. 크게 두가지 종류가 있음
+  - Pipeable : pipe(operator())의 형태로 사용할 수 있는 것들. 순수함수처럼 옵저버블 인스턴스를 수정하지 않는다. 대신에 새로운 옵저버블을 리턴하고, 첫번째 옵저버블을 구독하는데 썼던 subscription logic을 그대로 유지한다.
+  - Creation : Pipe를 이용하지 않고 단독으로 사용되며 새로운 옵저버블을 만들 수 있는 함수들이다. of(1,2,3)은 1,2,3을 순차적으로 뿜는 옵저버블을 만든다
+
+```js
+import { of } from "rxjs";
+import { map } from "rxjs/operators";
+
+// 옵저버블 생성
+of(1, 2, 3)
+  // 뭔가 구독 로직으로 이어지기 전에 필터링을 하는 친구인거같다. 파이프라이닝?
+  .pipe(map((x) => x * x))
+  .subscribe((v) => console.log(`value: ${v}`));
+
+// Logs:
+// value: 1
+// value: 4
+// value: 9
+```
+
+```js
+import { of } from "rxjs";
+import { first } from "rxjs/operators";
+
+of(1, 2, 3)
+  .pipe(first())
+  .subscribe((v) => console.log(`value: ${v}`));
+
+// Logs:
+// value: 1
+```
+
+### piping
+
+파이핑 연산자들은 여러개를 동시에 사용할 수 있다.
+
+```js
+obs.pipe(op1(), op2(), op3(), op4());
+```
+
+### creation operator
+
+- 옵저버블을 만들어낸다. 걍 new 연산자로 만들어내고 내부에 로직을 작성하는 것과는 달리 미리 predetermine된 로직을 사용해서 옵저버블을 만들 수 있다.
+
+```js
+import { interval } from "rxjs";
+
+const observable = interval(1000 /* number of milliseconds */);
+```
+
+### 고차 옵저버블
+
+- pipe에 새로운 옵저버블을 리턴하는 연산자를 사용하는 경우
+
+```js
+const fileObservable = urlObservable.pipe(map((url) => http.get(url)));
+
+// 파이프 옵저버블을 일반 옵저버블로 바꾸기
+const fileObservable = urlObservable.pipe(
+  map((url) => http.get(url)),
+  concatAll()
+);
+```
+
+- 여기서 concatAll()은 바깥 옵저버블에서 나오는 각각의 내부 옵저버블을 구독하여 복사하여 옵저버블이 완결될때까지 emit한다.
+
+### 마블 다이어그램
+
+많은 연산자들은 시간에 의존하고, 모든 로직이 동시적으로 순차적으로 진행되거나 처리되지 않을 수 있다. 옵저버블의 양태를 시계열에 따른 직선 다이어그램으로 표현한 그림이 마블 다이어그램이다.
+
+https://rxmarbles.com/#interval
+
+## 4. 주요 creation 연산자
+
+얘네들은 rxjs에서 export 된다.  
+스케쥴러 함수를 마지막 인자로 넣어줄 수 있다.
+
+### from
+
+옵저버블로 변환이 가능한 객체를 옵저버블로 바꿔주는 오퍼레이터. Observable, Array, Promise, Iterable, String 타입을 옵저버블로 바꿔준다.
+
+```js
+import { from } from "rxjs";
+
+from([1, 2, 3, 4]).subscribe({
+  next: console.log,
+  complete: () => console.log("complete"),
+});
+
+// 1
+// 2
+// 3
+// 4
+// complete
+
+// 이터레이터 함수 사용
+function* generateDoubles(seed: number) {
+  let i = seed;
+  while (true) {
+    yield i;
+    i = 2 * i;
+  }
+}
+
+const iterator = generateDoubles(3);
+const observable = from(iterator).pipe(take(10));
+
+observable.subscribe(console.log);
+
+// Logs:
+// 3
+// 6
+// 12
+// 24
+// 48
+// 96
+// 192
+// 384
+// 768
+// 1536
+```
+
+### fromEvent
+
+EventEmitter의 객체, 또는 브라우저 이벤트를 Observable로 바꿔야 하는 경우 사용. 특정 이벤트를 내보내는 옵저버블을 만든다 => 이거 확실한 용례를 가져와야할듯
+
+```js
+import { fromEvent } from "rxjs";
+
+const clicks = fromEvent(document, "click");
+clicks.subscribe((x) => console.log(x)); // 클릭 할때마다 이벤트 객체 리턴
+```
+
+```js
+// React 에서의 예제 => 근데 그냥... 여기서는 리스너 붙이는게 낫겟다 근데
+// svelte에서는 어떻게 활용할 수 있을지 생각해보기
+
+const InputBox = () => {
+  const buttonEl = React.useRef(null);
+
+  useEffect(() => {
+    const clicky = fromEvent(buttonEl.current, "click").subscribe((clickety) =>
+      console.log({ clickety })
+    );
+
+    return () => clicky.unsubscribe();
+  }, []);
+
+  return (
+    <button ref={buttonEl} type="button">
+      Click Me
+    </button>
+  );
+};
+```
+
+### of
+
+나열된 인자 값들을 순서대로 발행하는 옵저버블 만들어줌. new로 만드는것보다 간단
+
+```js
+import { of } from "rxjs";
+
+const complete = () => console.log("complete");
+
+of(1, 2, "a", "b", 3, 4, ["string", 10]).subscribe({
+  next: console.log,
+  complete,
+});
+
+// 1
+// 2
+// a
+// b
+// 3
+// 4
+// [ 'string', 10 ]
+// complete
+```
+
+### range
+
+일정 범위에 안에 있는 숫자 값을 next로 발행하는 Observable을 만든. 반복문을 실행하는 것과 같음
+
+```js
+import { range } from "rxjs";
+// 부터 몇개 => range(start, count)
+range(1, 5).subscribe(console.log);
+// 1
+// 2
+// 3
+// 4
+// 5
+
+range(2, 5).subscribe(console.log);
+// 2
+// 3
+// 4
+// 5
+// 6
+
+range(5, 1).subscribe(console.log);
+// 5
+```
+
+### interval
+
+ms 단위의 값을 인자 값으로 넣으면 그 텀마다 음이 아닌 정수를 차례대로 반환하는 함수 setInterval
+
+```jsx
+import { interval } from "rxjs";
+
+// 옵저버블 생성
+interval(1000).subscribe(console.log); // 1초마다 1씩 늘어난 값을 내보냄
+```
+
+### timer
+
+지정한 시간이 지난 다음 값을 한개 내보내는 함수. 두번째 값으로 그 다음 값에 대한 주기를 줄 수 있음. setTimeOut
+
+```js
+import { timer } from "rxjs";
+
+timer(1000).subscribe(console.log);
+// 0
+
+timer(1000, 500).subscribe(console.log);
+// 0
+// 1
+// 2 ...
+```
+
+### throwError
+
+값을 발행하다가 특정 에러를 발생시키고 종료해야하는 상황에 사용할 수 있는 함수
+
+```js
+import { throwError } from "rxjs";
+
+throwError(new Error("error")).subscribe({
+  next: console.log,
+  error: (err) => console.error(`error: ${err.message}`),
+  complete: () => console.log("complete"),
+});
+
+// error: error
+```
+
+## 5. scheduler
+
+A Scheduler lets you define in what execution context will an Observable deliver notifications to its Observer.
+
+- 언제 구독이 시작되고 notification이 언제 딜리버리 되는지 결정하는 옵저버블의 내부 동작 로직
+- 자료구조다 : 우선순위에 따라 어떤 로직을 실행하고 저장할지를 결정
+- 실행 컨텍스트다 : 로직의 순서 정함
+- 가상의 시계가 있다 : now()를 통해 시간 개념을 실현한다.
+
+```js
+import { Observable, asyncScheduler } from "rxjs";
+import { observeOn } from "rxjs/operators";
+
+// 이렇게 하면 asyncScheduler 함수에 따라 로직 전체가 비동기로 작동한다.
+const observable = new Observable((observer) => {
+  observer.next(1);
+  observer.next(2);
+  observer.next(3);
+  observer.complete();
+}).pipe(observeOn(asyncScheduler));
+
+console.log("just before subscribe");
+observable.subscribe({
+  next(x) {
+    console.log("got value " + x);
+  },
+  error(err) {
+    console.error("something wrong occurred: " + err);
+  },
+  complete() {
+    console.log("done");
+  },
+});
+console.log("just after subscribe");
+
+// just before subscribe
+// just after subscribe
+// got value 1
+// got value 2
+// got value 3
+// done
+```
+
+- If you do not provide the scheduler, RxJS will pick a default scheduler by using the principle of least concurrency. This means that the scheduler which introduces the least amount of concurrency that satisfies the needs of the operator is chosen.
+
+### 빌트인 스케쥴러 종류
+
+- null : 안넘기면 동기적, 순차적 실행
+- queueScheduler
+- asapScheduler : 마이크로태스크큐에 큐잉(프로미스)되서 실행됨. 마이크로태스크 큐 비동기 스케쥴러
+- asyncScheduler : 셋인터벌처럼 사용되는 태스크 큐 비동기 스케쥴러
+- animaitonFrameScheduler : requestAnimationFrame처럼 브라우저 리페인트 이후 직후 실행
+
+## 주요 filtering 연산자
+
+pipe와 함께 사용된다
+
+### filter
+
+배열의 filter 함수처럼 조건을 통과하면 값을 발행하도록 만든다
+
+```js
+import { range } from "rxjs";
+import { filter } from "rxjs/operators";
+
+range(1, 5)
+  // 필터링의 인자로 사용되는 함수를 predicate 함수라고 함
+  .pipe(filter((x) => x % 2 === 0))
+  .subscribe(console.log);
+```
+
+### last
+
+마지막 값 한개만 내보내는 연산자. next로 내보내지는 값을 모아두다가 complete이 호출되기 바로 전의 값을 내보낸다. 다만 complete이 없는 observable에서는 값을 내보내지 않는다(이러면 마지막값을 특정하기가 어려운가봄)
+
+```js
+import { range } from "rxjs";
+import { last } from "rxjs/operators";
+
+range(1, 10).pipe(last()).subscribe(console.log);
+// 10
+
+range(1, 10)
+  .pipe(last((x) => x <= 3))
+  .subscribe(console.log);
+// 3
+```
+
+### take
+
+정해진 개수만큼 구독하고 구독을 해제한다. 별도로 unscribe 같은걸 동작하지 않아도 되기 때문에 코드가 간결해지고 동작 파악이 쉬워진다
+
+```js
+import { interval } from "rxjs";
+import { take } from "rxjs/operators";
+
+interval(1000).pipe(take(5)).subscribe(console.log);
+// 1
+// 2
+// 3
+// 4
+// 5
+```
+
+### takeUntil
+
+take은 개수 제한을 두는 형태로 동작하지만, takeUntil은 조건 제한을 둔다. 특정 조건이 만족할때 unsubscribe한다.
+
+```js
+import { fromEvent, interval } from "rxjs";
+import { takeUntil } from "rxjs/operators";
+
+const source = interval(1000);
+const clicks = fromEvent(document, "click");
+
+// 이벤트가 발생되면 구독을 멈추고 인터벌을 중지한다.
+const result = source.pipe(takeUntil(clicks));
+
+result.subscribe(console.log);
+```
+
+### takeWhile
+
+predicate의 조건을 만족하는 동안은 구독을 유지한다.
+
+### skip
+
+원하는 만큼 내보내지는 값을 생략하고 그 다음 값부터 내보내진다.
+
+```js
+interval(250).pipe(skip(3)).subscribe(console.log);
+
+// 3
+// 4
+// 5
+// 6
+// 7
+// ...
+```
+
+### skipUntil
+
+인자 값으로 observable을 받고, 인자로 받은 Observable이 구독 시작되는 조건일때부터 값을 내보낸다.
+
+```js
+// 클릭이 일어난 시점부터 값을 내보내기 시작함
+
+import { interval, fromEvent } from "rxjs";
+import { skipUntil } from "rxjs/operators";
+
+const intervalObservable = interval(1000);
+const click = fromEvent(document, "click");
+
+const emitAfterClick = intervalObservable.pipe(skipUntil(click));
+
+const subscribe = emitAfterClick.subscribe((value) => console.log(value));
+```
+
+### skipWhile
+
+predicate로 들어가는 인자 함수가 만족하면 값을 건너뛴다.
+
+```js
+import { interval } from "rxjs";
+import { skipWhile } from "rxjs/operators";
+
+interval(300)
+  .pipe(skipWhile((x) => x < 4))
+  .subscribe(console.log);
+// 4
+// 5
+// 6
+// 7
+// ...
+```
+
+## reference
+
+- https://changhoi.github.io/categories/rxjs/
+- https://rxjs-dev.firebaseapp.com/

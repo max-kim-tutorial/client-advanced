@@ -2,11 +2,11 @@
 
 더 작고 더 빠르게!!
 
-## 번들러(webpack)를 쓰는 이유
+## 번들러 쓰는 이유
 
 - 브라우저에서는 node처럼 모듈 구문(AMD, commonjs, ES6, script module)을 제대로 지원하지 않기 때문에 개발한 JS파일을 묶어 번들링을 하고, HTML에 붙여서 서빙해야한다. 모듈 관련한 문법들은 웹팩에서 지원한다.
 - 브라우저에서 자원 요청의 수를 최대한으로 줄여야하므로 `<script></script>`를 몇줄이나 쓰는 것 보다 한번에 묶어서, 한번에 묶기 너무 크다면 몇 개의 조각으로 나누어 번들링을 하는게 더 경제적이다.
-- 패키지간의 의존 관계 해결 : 하나의 JS 파일로 복잡한 여러 개의 의존성을 하나로 합쳐줌. 
+- 패키지간의 의존 관계 해결 : 하나의 JS 파일로 복잡한 여러 개의 의존성을 하나로 합쳐줌.
 - 로더 : JS 패키지 뿐 아니라 스타일이나 이미지 같은 것들도 쉽게 빌드 결과물에 포함되도록 해준다.
 
 ## 번들을 줄여야 하는 이유
@@ -20,7 +20,6 @@
 - 무제한으로 보낼 수 있었다면 서버에 부담을 줄 가능성이 높고, 브라우저를 통해서 디도스 공격을 해버리는(...) 악용도 발생할 수 있음
 - 일단 병렬 네트워크 콜이 가능하기 때문에 하나의 커다란 번들을 작은 여러개로 나누는게 네트워크 비용에 이점을 가져올 수 있다(고 말할 수 있는게 맞나..?)
 - 더 자세히는 브라우저 단 최적화 문서에 정리하자
-
 
 ## 최적화 방법론
 
@@ -72,14 +71,14 @@ import { find } from "lodash";
 - minification : 코드에서 실행 자체에는 불필요한 요소들을 제거하여 코드를 난독화하고 압축하는 과정
 - 소스코드의 용량을 줄일 수 있어 네트워크를 좀 더 효율적으로 사용할 수 있게 한다
 - 잘 알려진 툴들
-  - Terser : 가장 유명하다. Rollup이랑 같이 쓰는게 제일 효율이 좋다. webpack에는 4이상이면 terser가 내장되어 있다. 
+  - Terser : 가장 유명하다. Rollup이랑 같이 쓰는게 제일 효율이 좋다. webpack에는 4이상이면 terser가 내장되어 있다.
 
 ```js
 module.exports = {
   //...
   optimization: {
-    minimize: false // 이렇게 끌 수 있음 default가 true
-  }
+    minimize: false, // 이렇게 끌 수 있음 default가 true
+  },
 };
 
 // terser 옵션은 이렇게 준다
@@ -96,31 +95,32 @@ module.exports = {
   },
 };
 ```
-  - uglify
-  - babel minify : 바벨단에서 해주는 것도 가능하다
+
+- uglify
+- babel minify : 바벨단에서 해주는 것도 가능하다
 
 ### 4. Code Splitting
 
-- dynamic import 문법 자체를 지원하지 않는 브라우저도 있기 때문에 웹팩의 힘을 빌린다. 
+- dynamic import 문법 자체를 지원하지 않는 브라우저도 있기 때문에 웹팩의 힘을 빌린다.
 - build시점에 import모듈을 chunk로 만들고, 필요한 시점에 **html에 script를 세팅하여 파일을 다운로드 한다**
 - 특이한게 head에 넣는다. 이미 HTML 파싱이 끝났으니 head에 넣어도 괜찮다는 것일까..
 - chunkname을 명시적으로 지정해줄 수 있다.
-- Magic Comment : prefetch/preload 옵션을 주석으로 넣어줄 수 있다 
+- Magic Comment : prefetch/preload 옵션을 주석으로 넣어줄 수 있다
   - webpackPrefetch : 브라우저가 판단하여 유휴한 시간이 미리 리소스를 받아 놓는다.
   - webpackPreload : 필요하지만 당장은 필요하지 않은 리소스를 미리 로드 해놓도록 하기 위한 옵션
 
 #### UX 관점
 
-보통 하나의 번들로만 구성된 SPA의 경우 유저가 페이지를 방문한 최초에 커다란 번들을 한 번에 다운로드해서 실행시키기 때문에, 아직 유저가 사용하지 않은 페이지까지 모든 자바스크립트 코드를 다운로드 받아야 한다. 유저가 필요할 때 필요한 번들을 다운로드 해줘도 무방할 경우에는 번들을 나눠 필요한 상황에서만 필요한 리소스를 요청하는 방법을 사용할 수 있다. 
+보통 하나의 번들로만 구성된 SPA의 경우 유저가 페이지를 방문한 최초에 커다란 번들을 한 번에 다운로드해서 실행시키기 때문에, 아직 유저가 사용하지 않은 페이지까지 모든 자바스크립트 코드를 다운로드 받아야 한다. 유저가 필요할 때 필요한 번들을 다운로드 해줘도 무방할 경우에는 번들을 나눠 필요한 상황에서만 필요한 리소스를 요청하는 방법을 사용할 수 있다.
 
 #### splitchunks(vendor splitting)
 
 https://simsimjae.medium.com/webpack4-splitchunksplugin-%EC%98%B5%EC%85%98-%ED%8C%8C%ED%97%A4%EC%B9%98%EA%B8%B0-19f5de32425a
 
-- 프로젝트 내에서 여기저기 import되어 사용되는, node_modules에 존재하는 모듈들을 아래처럼 별개의 chunk로 분리할 수 있다. 
+- 프로젝트 내에서 여기저기 import되어 사용되는, node_modules에 존재하는 모듈들을 아래처럼 별개의 chunk로 분리할 수 있다.
 - 여기저기서 사용되서 다수의 번들에 포함된 모듈들이 있다면 중복을 막기 위해 path를 지정해서 vendor로 분리할 수 있는 기능이 바로 splitchunks 기능 (웹팩 4부터 내장)
 - chunk 옵션 : 정적, 동적 임포트에 따라 chunk를 다르게 생성할 수 있음
-  - async: 동적 임포트만 따로 분리해서 독립적인 하나의 다른 번들을 만듬(동적 임포트가 많으면 여러개 만들수도 있음) 
+  - async: 동적 임포트만 따로 분리해서 독립적인 하나의 다른 번들을 만듬(동적 임포트가 많으면 여러개 만들수도 있음)
   - initial : 정적 import에 대해서 무조건 별도의 청크로 만들고, 남아있는 비동기 모듈들도 분리시켜줌(따로 파일을 분리해야 동적으로 불러올 수 있기 때문 - 사실 비동기 import된 모듈은 따로 옵션을 주지 않아도 웹팩이 알아서 분리를 잘 해주는듯)
   - all : 정적이든 동적이든 상관하지 않음 import된 모든 파일을 별도의 파일로 분리하는 옵션
 
@@ -169,8 +169,9 @@ https://medium.com/naver-fe-platform/webpack%EC%97%90%EC%84%9C-tree-shaking-%EC%
 
 https://webpack.js.org/guides/tree-shaking/
 
+- 일단 기본적으로 webpack bundling시 작동한다
 - optimization에 usedExports 옵션을 켜주는 경우, 임포트 되지 않은 코드들에 `unused harmony export 모듈이름`과 같은 주석이 붙고 export를 제거한다. 이거는 최적화에 활용된다. => minifier(uglify같은 게)가 이런 코드를 제거
-- require가 아닌 import, export로 => es6만 지원
+- **require가 아닌 import, export로 => es6만 지원(ESM)**
   - import, export가 babel에 의해 require, module.exports로 바뀌지 않게 babelrc에 "modules:false"로 지정해줘야함
 - 사용되지 않더라도 코드에 포함되는 경우가 있다 : 전역함수(Object, Math)를 사용하는 경우, 함수실행 코드에서 멤버변수를 변경하고 반환하는 경우, static class property를 사용하는 경우
   - import한 라이브러리를 사용한 함수를 사용하지 않는 경우 => 참조한 함수는 제거되더라도 원 함수는 제거되지 않는다
@@ -178,7 +179,35 @@ https://webpack.js.org/guides/tree-shaking/
   - 배열로 path를 나열하면 일부의 코드에 부수효과가 있는 것을 표현해줄 수 있음
   - 그러니까 약간 import된 것 중에 안쓰이는 코드 제거하는 것 정도는 크게 어렵지는 않은데 사이드 이펙트가 있는 경우에 판단하기 어려워하는 듯 => 그래서 어쩌면 굉장히 보수적으로? 뺄 코드를 판단해야 할지도
   - export가 있는 함수에 들어가있는 다른 함수가 export가 없는 경우는? : 제거되지 않는 듯 => 한번 해봐야겠다
-  - 당당(?)하게 package.json에 false라고 설정할 수 있는 경우는 어떤 경우일까? : 
+  - 당당(?)하게 package.json에 false라고 설정할 수 있는 경우는 어떤 경우일까? :
 - babel 7 이후 버전에서는 트랜스파일링시 pure annotation을 붙여준다 => 그 다음에 uglify같은 minifier가 코드를 없애줌
-- export default대신 module.exports를 사용하면 트리쉐이킹에서 제외된다. 사이드이펙트를 발생시키지 않지만 모듈에 꼭 들어가야 한다면 이런 방법 사용해도 ㄱㅊ
+- **export default대신 module.exports를 사용하면 트리쉐이킹에서 제외된다** 사이드이펙트를 발생시키지 않지만 모듈에 꼭 들어가야 한다면 이런 방법 사용해도 ㄱㅊ
 - 웹팩 4에서는 참조되더라도 사용되지 않으면 전부 제거됨(side effect 일어나는거 제외)
+
+## Webpack 말고 Rollup을 쓰는 이유
+
+https://medium.com/naver-fe-platform/webpack%EC%97%90%EC%84%9C-rollup%EC%A0%84%ED%99%98%EA%B8%B0-137dc45cbc38
+
+### ESM 형태의 번들 가능
+
+> In a 100% ESM module world, identifying side effects is straightforward. However, we aren't there quite yet, so in the mean time it's necessary to provide hints to webpack's compiler on the "pureness" of your code.
+
+Tree Shaking의 조건으로 번들링된 결과물에 ESM으로 모듈 시스템을 가지고 있어야 Terser의 트리쉐이킹이 가장 잘 작동한다. 이에 반해 Rollup은 ESM 형태로 번들링을 하는게 가능하다.(웹팩 5에서는 얼추 가능한거 같기도? 잘 모르겠음)
+
+Rollup은 여러 모듈을 한 모듈로 합치면서 ESM 형태로 번들이 가능함, webpack은 각각의 파일로 변환해야 한다는데 이게 무슨말이지. 개별 파일의 모든 Import, export가 살아있다는 건가
+
+### import/export 과정이 사라짐
+
+- webpack은 import는 **webpack_require**로 바뀌고 export는 exports 오브젝트로 바뀌면서 코드가 증가함 => 여러개를 하나로 합치게 되면 용량을 많이 줄일 수 있음
+- rollup은 여러개 모듈을 하나의 scope로 합쳐진 단일 모듈로 만듬. 상수 이름도 uglify됨
+
+### 빌드하면서 생기는 코드가 webpack보다 적음
+
+### 트리쉐이킹이 더 잘됨
+
+- import만 때리고 사용하지 않는 경우에도 트리쉐이킹을 한다.
+
+## Webpack과 Rollup의 동작 방식 차이
+
+- 웹팩 : 각 모듈들을 함수로 감싸고 로더와 모듈 캐시를 구현하는 번들을 생성. 런타임에서 각 모듈 함수들이 평가되어 모듈 캐시를 채움. 전역 스코프에 있던 변수들을 지역으로 변경해줌에 따라 충돌없는 모듈화가 가능. 좀 무겁긴 한데 안정적인 방식으로, 웹팩의 개발 서버, 플러그인 등 개발에 필요한 부가적인 기능들이 잘 되어있는 편. 그리고 버전이 올라감에 따라 내장이 된 기능들이 많아짐(편리성)
+- 롤업 : 모든 코드들을 동일한 수준으로 올리고 번들링을 진행하기 때문에 웹팩보다 빠르고 번들링된 결과물도 가벼움. ESM으로 번들이 되므로 라이브러리나 패키지에 잘 활용이 가능

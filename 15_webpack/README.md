@@ -106,7 +106,92 @@ minimize랑 splitchunks를 제외하면 일반적인 경우에 크게 커스텀�
 
 ## SplitChunks 옵션의 동작과 활용
 
-## Code Splitting (dyanamic import)
+진입점이 index.ts 하나인 React 프로젝트를 기본으로 실험해봤다.(외대 종강시계 v2)
+
+### Default로 적용
+
+기본 캐시 그룹이 존재한다(default, vendors). 비활성화 하려면 false를 주면 된다. 근데 이게 어떤 차이고 정확이 무슨 느낌인지 잘 모르겠다. Next.js의 webpack.config에서는 두 옵션에 다 false를 주고 시작한다.
+
+- 새 청크가 20kb보다 클 경우
+- 청크를 공유할 수 있거나 모듈이 node_modules 내부에 있는 경우
+- 요청시 청크를 로드할 때 병렬 요청수가 30개 이하일 경우
+- 초기 페이지 로드 시 최대 병렬 요청 수가 30개 이하일 경우
+
+### chunks 옵션
+
+cacheGroups로 vendor을 설정하고 test 값으로 node_modules를 주자
+
+```js
+ optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          chunks: 'initial',
+          filename: 'bundle/vendor-[contenthash].js',
+          priority: 1,
+        },
+      },
+    },
+  },
+```
+
+chunks의 옵션값과 효과는 다음과 같다.
+
+- async : 비동기로 동적 import된 모듈을 다른 번들로 묶는다
+- initial: 정적 import된 모듈을 다른 번들로 묶는다
+  ![initial](./image/initial.png)
+- all : 어떻게 import되었든 import된 모듈을 번들로 묶는다.
+- entry가 여러개라면 특정 엔트리 파일에서 import되는 모듈들은 각자의 번들에 들어간다. 엔트리가 여러개인 상황에서 splitchunk 옵션을 설정하면 공통 의존성을 다른 모듈로 빼준다.
+- 2개 이상의 모듈에서 사용된 공유 모듈은 또 다른 번들로 빼준다 => 이거 React가 아닌 다른 상황, entry가 2개 이상인 상황에서 한번 더 실험해보면 좋을듯
+
+#### 엔트리가 하나일 때
+
+- React 파일을 번들하는 엔트리가 하나면 딱히 효용이 없는건가..? : 싶었는데 아니고 엔트리가 하나라도 splitchunk node_module 설정하면 node_modules에 있는거 따로 빼준다. 설정을 해줬을 때에 App.tsx의 번들이 빠져있는 걸 보면 알 수 있다.
+- entry가 하나일때 splitChunks 위와 같은 옵션을 줬음 : App.tsx는 따로 묶이고, node_modules에 있는 의존성들은 vendor 하나로 묶인다.
+
+![했을때](./image/initial.png)
+
+- entry가 하나일 때 splitChunks 위와 같은 옵션을 안 줬음 : 모든 의존성들과 함께 App.tsx도 하나의 아웃풋 번들에 포함된다.
+
+![안했을때](./image/안줌.png)
+
+### 그 외 잘 사용되는 옵션들
+
+- priority : 모듈은 여러 캐시 그룹에 속할 수 있는데, cacheGroups들 중에서 우선순위가 더 높은 캐시 그룹으로 들어간다.
+- test : 캐시 그룹에 대해 선택되는 모듈을 제어한다. 절대 경로 모듈 리소스, 또는 청크 이름과 일치할 수 있음. 정규표현식 사용할 수 있다.
+- filename : 초기 청크인 경우 파일 이름을 재정의할 수 있음
+- enforce : 윗단 splitchunks 객체에 설정한 옵션들을 무시하고 항상 이 캐시 그룹에 대한 청크를 하위 옵션에 따라 생성하도록 지시한다.
+
+### splitchunk initial + code splitting 같이 썼을 때의 동작
+
+cond splitting이랑 splitchunk를 같이 쓰면 스플릿한 번들안에서만 사용하는 라이브러리들은 원래 나눠졌던 벤더 말고 또 별도의 번들로 분리된다.
+
+splitchunk옵션은 async나 all 주면 벤더로 분리되고, initial을 주면 chunk로 분리된다. 어쨌든 분리는 된다
+
+역시 2개 컴포넌트 이상에서 사용하는 라이브러리는 진작에 vendor로 분리된다. 코드 스플리팅한 컴포넌트가 불러와질때 해당 벤더도 같이 불러와진다. 특정 컴포넌트에서만 사용하는 라이브러리들을 격리해서 번들 속에 넣어줄 수 있고 필요할 때만 불러올 수 있다.
+
+![벤더+코드스플리팅 사용](./image/withvendor.png)
+
+코드 스플리팅을 사용하지 않고, 옵션을 initial로 설정하면 모든 모듈들이 다 vendor로 들어간다.
+
+![벤더+코드스플리팅 안씀](./image/withoutvendor.png)
+
+그렇다면 코드 스플리팅을 한 컴포넌트가 2개이고, 2개의 스플리팅된 컴포넌트에서 각각 같은, 혹은 다른 라이브러리를 사용하면 어떻게 될까? 역시 한 컴포넌트에서만 사용된 라이브러리는 독립된 청크로 묶여서 해당 컴포넌트 불러올 때 같이 불러와지고, 두 곳에서 사용된 같은 라이브러리는 한 번만 묶인다
+
+![이렇게 된다](./image/따로묶임.png)
+![이렇게 된다](./image/같이묶임.png)
+
+목적은 잘 달성하고 있지만 컴포넌트와 라이브러리 청크가 따로 묶이는게 아쉽다. 다 같이 묶이면 리퀘스트를 한번 줄일 수 있을 것 같다. 방법이 없을까..? 연구해봐야겠다..
+
+### 번들을 나누는 일반적인 기준
+
+각 코드 번들은 얼마나 커야 하는걸까???
+
+어떻게 나눠야 가장 빠를까?  
+리퀘스트 횟수 줄이기?
+
+### 코드 스플리팅 전략
 
 ## TreeShaking
 

@@ -27,9 +27,10 @@ const Button = () => {
 }
 ```
 
-- 처음부터 CSS를 JS 파일에서 사용할 수 있었던 것은 아니고, `*.(module).css` 으로 파일을 생성하고 CSS 전처리기를 사용하여 불러왔었다. 주로 컴포넌트에서 CSS를 불러와 적용시키는 방법이다.
-  - Webpack의 CSS loader, style-loader : css loader는 CSS 파일을 읽어서 JS에서 사용 가능한 스트링으로 변환한다. 이때 CSS내부의 URL이나 import등은 path를 읽어서 JS에서의 import나 require로 바꿔줌. style-loader는 반환해준 값을 실제로 DOM에 style 태그로 삽입한다. 하는 역할이 다르기 때문에 두개를 한번에 써준다.
-  - 이런 방식으로 CSS를 사용하면 런타임에서의 동작이 없으므로(컴파일시 다 들어가 있음) Zero runtime css-in-js가 된다.
+
+- **Webpack의 CSS loader, style-loader** : CSS loader는 CSS 파일을 읽어서 JS에서 사용 가능한 스트링으로 변환한다. 이때 CSS내부의 URL이나 import등은 path를 읽어서 JS에서의 import나 require로 바꿔줌. style-loader는 반환해준 값을 실제로 DOM에 style 태그로 삽입한다. 하는 역할이 다르기 때문에 두 개를 한번에 써준다.
+- **CSS Module** : 처음부터 CSS를 JS 파일에서 사용할 수 있었던 것은 아니고, `*.(module).css` 으로 파일을 생성하고 CSS 전처리기를 사용하여 불러왔었다. Webpack CSS loader 설정에서 `modules:true` 옵션을 주면 사용이 가능하다. 컴포넌트에서 사용한 클래스명을 시스템에서 알아서 고유한 값으로 변화시켜주므로 다른 컴포넌트에 선언되어 있는 클래스명이 중복이 될 걱정 없이 스타일링을 할 수 있다.
+- 이런 방식으로 CSS를 사용하면 런타임에서의 동작이 없으므로(컴파일시 다 들어가 있음) Zero runtime css-in-js가 된다.(CSS-in-js가 맞나?)
 
 #### 2. JS 변수를 활용하여 CSS 작성 가능해짐
 
@@ -182,7 +183,7 @@ tag`나는 ${location}에 살고있는 ${name}이야` // [나는 ", "에 있는 
 - 첫번째 인자로 문자열 부분만 들어간 배열이 전달되고, 나머지 인자들에는 표현식이 순서대로 전달됨
 - 문자열 부분과 표현식 부분을 효과적으로 분리해 함수 인자로 넣어줄 수 있다.
 
-#### styled 멘탈 모델
+#### styled 함수의 멘탈 모델
 
 ```jsx
 // myStyled.js
@@ -254,11 +255,58 @@ ReactDOM.render(<Button color="blue">Click me</Button>, rootElement)
 - CSS가 다시 파싱될때 이전에 만들었던 CSS 선택자는 head에 유지된다. [걔네를 그대로 두는게 없애는것 보다 오버헤드가 덜하기 때문이란다](https://github.com/styled-components/styled-components/issues/1431#issuecomment-358097912)
 - 아까 이야기한대로 production은 CSSOM을 건들기 때문에 더 빠르다.
 
+#### theming에 대해
+
+https://medium.com/@BogdanSoare/why-its-better-to-use-css-variables-instead-of-js-variables-for-theming-91a3b6f98166
+
+- CSS variable로 theming하면 추가적인 provider을 쓰지 않아도 되고
+- devtool에서 css variable을 수정할 수 있으므로 수정한 사항을 보기에도 유용한 편이며
+- **미디어 쿼리로 쉽게 바꿀수도 있게 된다**
+- styled-component와 @emotion/css의 `InjectGlobal`로 이를 실현할 수 있다. 아니면 SPA면 걍 CSS 만들어서 index.html에 때려넣어도..? => CSS는 Rendering Block 요소라서 JS보다 더 빨리 렌더링될 수 있으니까
+- theme-provider로 넣어주는 theme은 결국 styled가 만든 컴포넌트에 props에 바인딩되어 함께 들어가는(`props.theme.color` 이런식으로 접근함), 연산되야 하는 **동적 값**이기 때문에 이러한 동적 포인트를 css 변수로 바꿔준다면 성능 향상을 기대해볼 수 있을 듯 하다.
 
 ### Emotion
 
+- You shouldn’t have to sacrifice runtime performance for good developer experience when writing CSS. emotion minimizes the runtime cost of css-in-js dramatically by parsing your styles with babel and PostCSS 라고 한다.
+
+#### inline 모드 작동 방식
+
+일단 사용하면서 더 상세한 부분은 체크해보도록 하자
+
+- Styled 컴포넌트 코드는 바벨에 의해 다음과 같은 코드로 바뀐다. 바벨을 안쓰는 경우는..? 타입스크립트를 쓰는 경우는..? 템플릿 리터럴 문법을 이런식으로 컴파일한다는건가
+```js
+const H1 = styled(
+  'h1',
+  ['css-H1-duiy4a'], // generated class names
+  [props => props.color], // dynamic values
+  function createEmotionStyledRules (x0) {
+    return [`.css-H1-duiy4a { font-size:48px; color:${x0} }`]
+  }
+)
+```
+- 저 스타일 컴포넌트가 렌더링이 될 때마다
+  - CSS block의 동적 값들을 순회하면서 현재 상태에 맞는 prop 값으로 바뀐다.
+  - `createEmotionStyledRules` 함수는 앞에서 최신화한 props value를 인자로 삼는 함수로, 최신화된 props 값을 이용하여 CSS Block의 문자열을 완성시킨다.
+  - 완성된 CSS block을 StyleSheet으로 집어넣는다.
+  - 컴포넌트의 className으로 생성된 클래스 이름이 들어간다.
+
 ### 이 둘의 차이점
 
-이번에 한번 이모션 써볼까..?
+이번에 종강시계에서 emotion을 한번 써봐도 좋을 것 같다
+
+- 이모션이 번들 크기가 더 작다 -> 기능이 비슷한데 번들 크기 더 작으면 이모션이 더 좋을듯? 그리고 번들이 `lodash.` 처럼 조각조각 나뉘어 있어 필요한 부분만 설치할 수도 있다.
+- Styled Component 보다 마운트, 렌더 시간이 [벤치마크에서 앞선다](https://medium.com/@tkh44/emotion-ad1c45c6d28b).
+- emotion의 `CSS props` : 인라인으로 CSS를 작성할 수 있게 하는데 이 CSS에 미디어 쿼리, nested Selector을 이용하는 방법으로 인라인 스타일을 확장한다. tagged template literal 뿐 아니라 object도 사용할 수 있다.
+  - 원래 CSS로 만든 디자인 시스템이나 컴포넌트가 있을 때 이걸 쓰면 마이그레이션하기 너무 좋을 것 같다.
+  - 바벨 프리셋과 함께 사용해야 한다.
+- SSR에서 Styled-Component보다 이점이 있다고 하는데 아직 Next를 많이 다뤄보지 않아서 잘 모르겠다.
 
 ## CSS-in-CSS
+
+또 일각에서는 Runtime CSS보다 SASS랑 CSS-module을 가지고 스타일링을 하는게 낫다는 [의견도 있다.](https://blueshw.github.io/2020/09/14/why-css-in-css/)
+
+- Runtime CSS-in-js의 단점
+  - 번들이 커진다. SSR을 하더라도 추출된 critical CSS까지 포함하니 더커진다
+  - 동적 값을 연산해야하는 시간이 필요하기 때문에 인터랙션이 늦어질 수 있다.
+- 물론 성능이 매우 중요하고 CSS-in-js가 병목이라는게 밝혀졌을 경우 최적화는 반드시 필요하다.
+- 그렇지 않은 경우, 개인적으로 런타임 CSS-in-JS 개발 편의성과 성능은 어느정도 타협이 가능한 지점이라고 생각함. 런타임 CSS-in-JS가 제공하는 동적 스타일링 방식 등의 편의기능은 개발 과정에서 확실히 도움이 되기 때문이다.

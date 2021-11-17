@@ -158,7 +158,9 @@ templateFunction.attrs = <Props = OuterProps>(attrs: Attrs<Props>) =>
 
 ## 무엇을 제일 많이 쓰는가?
 
-npm-trends보니 styled-components가 1위고 @emotion/react가 2위 인데 둘이 2배 정도 차이가 난다. 2021년을 기준으로 이모션이 많이 올라오긴 했다.
+npm-trends보니 @emotion/styled, styled-components보다 위고 80만정도 다운로드 수가 더 많다. 현재로선 어느 정도 차이가 난다. 이모션이 라이브러리가 분산되어있기 때문에 다운로드도 분산된다는 점을 감안한다면 더 높지 않을까...? 2020년을 기준으로 이모션이 styled-component를 이겼다.
+
+![트렌드](./npm-trends.png)
 
 ## Runtime css-in-js 라이브러리들 탐구
 

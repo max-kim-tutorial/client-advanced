@@ -15,9 +15,9 @@
 
 ![개념이 다르다](https://oopy.lazyrockets.com/api/v2/notion/image?src=https%3A%2F%2Fs3-us-west-2.amazonaws.com%2Fsecure.notion-static.com%2Fbd7c9a98-f6fe-420a-818c-18ef1f5578b9%2FUntitled.png&blockId=8fe26dec-cb39-4ca6-9195-20477cfac55b)
 
-- **require()** : CommonJS에서 require()은 동기 동작으로 정적으로 쓸 수 없다. 디스크 혹은 네트워크에서 파일을 읽어 그 즉시 스트립트를 실행한다. 따라서 스스로 I/O나 부수효과를 실행하고, `module.exports`에 설정되어 있는 값을 리턴한다. **`require()`는 실행문이고 모듈은 하나의 독립적인 프로그램이다.**
+- **require()** : CommonJS에서 require()은 동기 동작으로(블락하는 로직) 정적으로 쓸 수 없다. 디스크 혹은 네트워크에서 파일을 읽어 그 즉시 스트립트를 실행한다. 따라서 스스로 I/O나 부수효과를 실행하고, `module.exports`에 설정되어 있는 값을 리턴한다. **`require()`는 실행문이고 모듈은 하나의 독립적인 프로그램이다.**
   - export 객체에 값을 복사해서 넣는다. -> 만일 export 하는 파일에서 비동기로 값이 바뀐다면 Common.js는 반영이 되지 않지만 ESM은 다시 반영된다.
-- **import/export** : 반면에 ESM은 모듈 로더를 비동기 환경에서 실행한다. 먼저 가져온 스크립트를 바로 실행하지 않고, import/export 구문을 찾아 스크립트를 파싱한다.
+- **import/export** : 반면에 ESM은 모듈 로더를 비동기 환경에서(안 블락하는 로직) 실행한다. 먼저 가져온 스크립트를 바로 실행하지 않고, import/export 구문을 찾아 스크립트를 파싱한다.
   - export는 참조를 반환하는 함수를 정의한다.
   - 오..이래서 동적으로 import를 쓸 경우 then을 사용할 수 있었던 것일까?
   - 파싱 단계에서 실제로 ESM 로더는 종속성이 있는 코드를 실행하지 않고도 names imports에 있는 오타를 감지하여 에러를 발생시킨다. 

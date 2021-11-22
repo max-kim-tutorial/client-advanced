@@ -364,6 +364,15 @@ console.log(b.divide(4,2))
 몰흐게따..babel7, Pure Annotation 써봐도 잘 안되는데 잘 모르겠다  
 찾아도 안나온다.. Rollup Treeshaking여기서 돌여도 class는 안사라진다.
 
+### 7. import export가 많은게 영향을 미치나? 
+
+뷰모델로 따로 분리하는 것과 컴포넌트 안에 로직들을 넣는 것에 대해 차이가 있는가? 보일러플레이트 코드가 추가되는가?
+
+- React 컴포넌트 내부에 들어있는 경우 : 함수의 생성이 매 렌더링마다 생성이 되게 만들어야 하나?
+- 밖에서 안으로 들어오는 경우
+  - 같은 파일의 컴포넌트 밖에 있는 경우
+  - 다른 파일에서 임포트해오는 경우
+
 ## 레퍼런스
 
 - https://medium.com/naver-fe-platform/webpack%EC%97%90%EC%84%9C-tree-shaking-%EC%A0%81%EC%9A%A9%ED%95%98%EA%B8%B0-1748e0e0c365

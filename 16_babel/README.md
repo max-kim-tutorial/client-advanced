@@ -223,3 +223,7 @@ corejs@3 옵션은 preset인 env와 plugin인 transform-runtime에서 동작하�
 # 레퍼런스
 
 - https://jeonghwan-kim.github.io/series/2019/12/22/frontend-dev-env-babel.html
+- https://babeljs.io/docs/en/babel-plugin-transform-runtime
+- https://so-so.dev/web/you-dont-know-polyfill/
+- https://tech.kakao.com/2020/12/01/frontend-growth-02/
+- https://programmingsummaries.tistory.com/401

@@ -40,7 +40,7 @@ Draft - 아직 결론을 내리지 못함. 클래스에 대해서 좀 더 공부
     foodList => new FoodList(foodList)
   );
   ```
-  - 이런 방식이 빛을 발하려면, 프로젝트 디렉토리를 페이지 단위나 컴포넌트 단위가 아니라 철저히 [기능 단위로 구분해야한다.](https://ahnheejong.name/articles/package-structure-with-the-principal-of-locality-in-mind/) 그래야 클래스 내부가 비정상적으로 비대해지지 않을 수 있다.
+  - 이런 방식이 빛을 발하려면, 프로젝트 디렉토리를 페이지 단위나 컴포넌트 단위가 아니라 철저히 [기능 단위로 구분해야한다.](https://ahnheejong.name/articles/package-structure-with-the-principal-of-locality-in-mind/) 그래야 클래스 내부에서 이 데이터 저 데이터 섞이는 식으로, 비정상적으로 비대해지지 않을 수 있다.
 ## 생각해본 장점
 
 - 데이터와 함께 로직을 같은 곳에 보관할 수 있어서 코드의 응집도가 높아짐

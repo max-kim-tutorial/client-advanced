@@ -215,11 +215,6 @@ corejs@3 옵션은 preset인 env와 plugin인 transform-runtime에서 동작하�
 - IE 지원을 해야한다면 당연히 타겟에 추가를 해야하겠다
 - 하지만 크롬 버전만 가지고 따진다면... 너무 옛날 버전 정도만 버리는 정도로 타겟을 설정하면 되지 않을까 함. 58? 59(2017년쯤 나옴) 정도로 많이 맞추는 듯
 
-## 선택의 여지
-### babelrc vs webpack babel loader
-
-### webpack ts-loader vs babel-typescript
-
 # 레퍼런스
 
 - https://jeonghwan-kim.github.io/series/2019/12/22/frontend-dev-env-babel.html

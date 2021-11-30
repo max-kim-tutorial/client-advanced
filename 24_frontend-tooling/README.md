@@ -2,7 +2,7 @@
 
 ## 순서가 중요한 것
 
-tsx 컴파일 일반적인 순서 : 타입스크립트 -> JSX -> 자바스크립트
+React 프로젝트에서 tsx 컴파일 일반적인 순서 : 타입스크립트 -> JSX -> 자바스크립트
 
 ### babelrc vs webpack babel loader
 
@@ -93,6 +93,8 @@ tsx 컴파일 일반적인 순서 : 타입스크립트 -> JSX -> 자바스크립
 
 #### JSX에 대한 사전정보
 
+이거 따로 폴더 파서 알아봐도 좋을듯~
+
 - React.createElement 함수에 대한 문법적 설탕이다.
 - (원래는) React가 스코프 내에 존재해야 했다. React.createElement를 호출하는 코드로 컴파일되기 때문에 React 라이브러리 역시 JSX 코드와 같은 스코프 내에 존재해야만 했음
   - (이제는) 아님 [React 17 New Transform JSX](https://ko.reactjs.org/blog/2020/09/22/introducing-the-new-jsx-transform.html)
@@ -101,7 +103,8 @@ tsx 컴파일 일반적인 순서 : 타입스크립트 -> JSX -> 자바스크립
 #### babel react-preset vs typescript jsx react option
 
 - JSX에 대한 컴파일 옵션은 @babel/react-preset을 사용하거나 Typescript의 tsconfig의 JSX 옵션에서 사용할 수 있다.
-- [이 글에 따라](https://ko.reactjs.org/blog/2020/09/22/introducing-the-new-jsx-transform.html)아래와 같이 하면 new JSX Transform을 지원하면서 결과물이 같기 때문에, 결국 순서의 차이라고도 할 수 있다.
+- [이 글에 따라](https://ko.reactjs.org/blog/2020/09/22/introducing-the-new-jsx-transform.html) 아래와 같이 하면 new JSX Transform을 지원하면서 결과물이 같기 때문에, 결국 순서의 차이라고도 할 수 있다.
+
 ```jsx
 // babelrc
 {
@@ -125,18 +128,82 @@ tsx 컴파일 일반적인 순서 : 타입스크립트 -> JSX -> 자바스크립
 
 이 경우에도 두 가지 선택지가 있다.
 
-- @babel/preset-typescript 혹은 @babel/preset-react => @emotion/babel-preset-css-prop
-  - `import { jsx } from '@emotion/react'`이게 자동으로 추가되고 `jsx('img', { src: 'avatar.png' })` 이런식으로 React.createElement를 변화시켜 CSS Props를 이해할 수 있게 된다.
-  - 근데 이모션 독스에서는 new JSX Transform을 쓰려면 이걸 사용하지 말라고 한다. JSX 함수가 네임스페이스가 겹쳐서 그런건가
-- tsconfig에서 `jsx:react-jsx, jsxImportSource: @emotion/react`로 설정하면 emotion을 이해할 수 있는 형태로 알아서 바뀐다.
+- babel에서 JSX를 처리하는 경우
+
+tsconfig에서 JSX를 건드리지 않을 것이라면 `JSX:'preserve'`로 설정하고 React Preset을 사용하며, babel-preset-css-prop이라는 프리셋을 사용한다.
+
+https://github.com/emotion-js/emotion/blob/main/packages/react/src/jsx.js
+
+```json
+{
+  "plugins": [
+    ["@babel/plugin-transform-runtime", {"corejs":3}]
+  ],
+  "presets": [
+     [
+      "@babel/preset-env",
+      {
+        "targets": {"chrome": "58"},
+      }
+    ],
+    "@babel/preset-react",
+    "@emotion/babel-preset-css-prop", // Emotion의 JSX Fragment를 제거하고
+    // React.createElement를 감싼 emotion 패키지의 jsx 함수로 css prop을 적용시킨다
+  ]
+}
+```
+
+JSX Transform을 사용하는 경우에 emotion은 다음과 같은 구조를 추천하고 있다.
+
+`@emotion/babel-preset-css-prop`에서 하는 [emotion 패키지의 jsx 함수가 React.createElement를 포함하고 있기 때문](https://github.com/emotion-js/emotion/blob/main/packages/react/src/jsx.js)에 React를 사용하는 것은 매한가지이기 때문이다.
+
+```json
+{
+  "plugins": [
+    "@emotion", // 가장 먼저 이모션 플러그인이 먼저 템플릿 리터럴 CSS를 함수로 바꾼다
+    ["@babel/plugin-transform-runtime", {"corejs":3}]
+  ],
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "targets": {"chrome": "58"},
+      }
+    ],
+    [
+      "@babel/preset-react", // 이모션 플러그인 작동 이후 JSX를 emotion에 맞는 포맷으로 처리
+      {
+        "runtime": "automatic",
+        "importSource": "@emotion/react"
+      }
+    ],
+  ]
+}
+```
+
+- tsconfig에서 해결하는 경우 : 이렇게 하면 자동적으로 JSX Transform도 적용된다.
+
+```json
+{
+  "compilerOptions" : {
+    "jsx": "react-jsx",
+    "jsxImportSource": "@emotion/react",
+    ...
+  }
+}
+```
+
+- tsconfig에서 해결하는 경우, 바벨 동작에 앞서 무조건 JSX와 Emotion을 해결할 수 있어 바벨보다 먼저 해결되는게 보장된다.
+- 개인적으로 tsconfig에서 하는게 좋은 것 같은게, 바벨 동작보다 먼저 돌아가는게 보장되고 추가적인 바벨 플러그인을 설치하지 않아도 되기 때문이다.
+- preset-react는 자바스크립트 프로젝트에서만 쓰는게 맞지 않을까..? 싶은 생각이 살짝 든다.
 
 ### ES5
 
 > babel preset-env vs typescript target ES5
 
-- 이거는 바벨이 그냥 넘사다. 
+- 이거는 바벨이 그냥 넘사다. 바벨의 원래 존재 이유였기 때문에 ts-loader같은 친구보다 더 잘할 수 밖에 없다
 - tsconfig로는 Module Target이랑 ES Target 정도밖에 설정 못하지만 babel로는 타겟 브라우저와 여러 플러그인 설정으로 정말 원하는 결과물을 더 다채롭게 낼 수 있다.
-- 트리 쉐이킹을 위한 퓨어 어노테이션 지원도 더 잘된다고 한다.
+- 여러 편의 기능도 지원한다. 트리 쉐이킹을 위해 클래스 문법에 [퓨어 어노테이션도 알아서 붙여준다.](https://babeljs.io/blog/2018/08/27/7.0.0#pure-annotation-support)
 
 ## 기타 등등 알면 좋은 것
 
@@ -150,4 +217,39 @@ tsx 컴파일 일반적인 순서 : 타입스크립트 -> JSX -> 자바스크립
 
 ### Babel Tree Shaking friendly Setting
 
-### StoryBook Tooling
+- ESM이 정적 분석과 트리쉐이킹에 최적화되어있기 때문에 ESM으로 작성된 상태를 webpack에서의 terser같은 도구가 dead code를 제거하기 전까지 유지해야한다.
+
+```json
+// tsconfig
+{
+  "compilerOptions" : {
+    "target": "ESNext",
+    "module": "ESNext",
+    ...
+  }
+}
+
+// babel
+{
+  "plugins": [
+    ["@babel/plugin-transform-runtime", {"corejs":3}]
+  ],
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "targets": {"chrome": "58"},
+        "modules": false,
+        "loose": true
+      }
+    ]
+  ]
+}
+```
+  
+- tsconfig 설정: tsconfig에서도 ESM을 유지해야 한다.
+  - 모듈 설정을 ESNext, 혹은 ES6로 한다. ESNext로 하면 동적 임포트를 사용할 때 에러가 안 뜬다.
+  - 그러면 모듈이 그대로 살아 babel로 넘어간다.
+  - [모듈을 CommonJS로 설정하지 마쎄용](https://webpack.kr/guides/typescript/#loader)
+- preset-env의 modules 설정 : false로 설정하면 preset env에서 ES6 모듈만 남도록 할 수 있다. 
+  - 처음에 preset-env가 ES5 결과물을 내야 하는데 commonjs가 아니라 ESM이 그대로 남아있으면 어떡하지? 싶었는데 이 과정은 호환성 문제를 일으키지 않는다. 결국 webpack이 코드를 [범용적으로 사용할 수 있는 형태로 변환해주기 때문이다.](https://ui.toast.com/weekly-pick/ko_20180716#babel%EB%A1%9C-es6-%EB%AA%A8%EB%93%88%EC%9D%B4-commonjs-%EB%AA%A8%EB%93%88%EB%A1%9C-%EB%B3%80%ED%99%98%EB%90%98%EB%8A%94-%EA%B2%83-%EB%A7%89%EA%B8%B0)(여러 디펜던시들을 하나로 번들링)

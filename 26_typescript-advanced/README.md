@@ -289,7 +289,8 @@ type ActionType = Action['type'] // 이렇게 속한 키 타입으로 인덱싱 
 function double<T extends number|string>(x:T):T; // 제네릭 설정하고 이름 토대로 파라미터 타입추론. 인자와 같은 선상에 제네릭을 둔다
 ```
 
-## TS 컴파일시 컴파일러가 타입 선언들을 찾는 방법
+## [TS 컴파일시 컴파일러가 타입 선언들을 찾는 방법](https://medium.com/naver-fe-platform/%ED%83%80%EC%9E%85%EC%8A%A4%ED%81%AC%EB%A6%BD%ED%8A%B8-%EC%BB%B4%ED%8C%8C%EC%9D%BC%EB%9F%AC%EA%B0%80-%EB%AA%A8%EB%93%88-%ED%83%80%EC%9E%85-%EC%84%A0%EC%96%B8%EC%9D%84-%EC%B0%B8%EC%A1%B0%ED%95%98%EB%8A%94-%EA%B3%BC%EC%A0%95-5bfc55a88bb6)
+
 
 ![멘탈모델](https://miro.medium.com/max/1400/1*jiSSYV2tXIcnIavTR5oVJQ.jpeg)
 

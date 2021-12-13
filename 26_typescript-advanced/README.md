@@ -288,3 +288,24 @@ type ActionType = Action['type'] // 이렇게 속한 키 타입으로 인덱싱 
 
 function double<T extends number|string>(x:T):T; // 제네릭 설정하고 이름 토대로 파라미터 타입추론. 인자와 같은 선상에 제네릭을 둔다
 ```
+
+## TS 컴파일시 컴파일러가 타입 선언들을 찾는 방법
+
+![멘탈모델](https://miro.medium.com/max/1400/1*jiSSYV2tXIcnIavTR5oVJQ.jpeg)
+
+- 모듈 불러오기 방식에 따라 다른 방식으로 찾는다.
+  - `import modulename from "modulename"` : ES6의 모듈 패턴으로 모듈의 타입 선언을 불러오는 동시에 해당 구문은 require로 변환한다.(tsconfig 설정 따라 변경)
+    - 상대경로 : 경로에 존재하는 .ts나 d.ts 파일을 탐색한다.
+    - 비 상대경로 : compilerOptions.paths 설정이 있는 경우 해당 경로 탐색 ⇒ 현재 파일이 위치한 디렉토리 탐색 ⇒ 루트 디렉토리에 도달할때까지(baseUrl) 상위 디렉토리로 올라가며 파일탐색 ⇒ `node_modules` 내부 탐색 ⇒ node_modules 내부의 해당 모듈의 package.json 필드에 설정된 경로 탐색 ⇒ 모듈 디렉토리 내 파일 탐색
+    - ts에서 d.ts 순으로 참조한다.
+    - 이걸 다하고도 못찾았을 경우 엠비언트 모듈 선언을 찾는다
+  - `///<reference type="modulename: />` : 모듈의 타입 선언만을 불러오고, .js로 변환된 파일에서는 단순 주석으로 취급된다. 보통 글로벌에 구현된(??) 모듈의 타입 선언을 불러올때 사용함
+    - typeRoots에 지정된 경로에서 모듈 이름으로 된 디렉토리를 탐색. module/package.json의 main, types, typing 필드에 설정된 경로에서 d.ts 탐색. module/index.d.ts 탐색
+    - 타입 선언만을 불러오기 때문에 d.ts만 불러온다.
+- 엠비언트 모듈 선언
+  - 아까 찾아온 모듈의 타입 (ESM, triple-slash directives)
+  - tsconfig 설정에 포함된 파일 : 위 두개의 명시적으로 모듈 시스템을 사용해 파일을 불러오는 것은 해당 구문이 작성된 파일을 컴파일하는 시점에만 유효하다. 하지만 tsconfig.json에서 불러오도록 설정된 파일들은 전체 파일을 컴파일할때 포함된다.
+    - baseURL : 설정 상대경로 옵션의 baseurl
+    - file, include, exclude : 타입 탐색에 명시적으로 포함하고자 하는 파일의 경로+ 확장자, 혹은 제외하거나 넣은 패턴이나 와일드카드 입력
+    - typeRoots : typeRoots 옵션에서는 디렉토리 경로 문자열을 지정한다. 모듈 선언의 기본 디렉토리 역할을 하며, 해당 옵션에 지정된 경로의 하위 폴더는 컴파일시에 자동 포함된다. 폴더만 포함되기 때문에 **모듈 이름으로 폴더를 만들고 index.d.ts를 만드는 방식으로 만들어준다.**
+    - types: 모듈 이름을 지정한다. 이 옵션이 설정되어 잇으면 typeRoots의 자동포함은 동작하지 않는다. index.d.ts에 필요한 타입선언을 때려박은 경우 객체로 해당 모듈에 대한 참조가 발생했을 경우 내가 선언한 타입선언을 참조할 수 있게 해줄 수 있다.

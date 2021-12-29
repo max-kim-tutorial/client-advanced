@@ -310,3 +310,34 @@ function double<T extends number|string>(x:T):T; // 제네릭 설정하고 이�
     - file, include, exclude : 타입 탐색에 명시적으로 포함하고자 하는 파일의 경로+ 확장자, 혹은 제외하거나 넣은 패턴이나 와일드카드 입력
     - typeRoots : typeRoots 옵션에서는 디렉토리 경로 문자열을 지정한다. 모듈 선언의 기본 디렉토리 역할을 하며, 해당 옵션에 지정된 경로의 하위 폴더는 컴파일시에 자동 포함된다. 폴더만 포함되기 때문에 **모듈 이름으로 폴더를 만들고 index.d.ts를 만드는 방식으로 만들어준다.**
     - types: 모듈 이름을 지정한다. 이 옵션이 설정되어 잇으면 typeRoots의 자동포함은 동작하지 않는다. index.d.ts에 필요한 타입선언을 때려박은 경우 객체로 해당 모듈에 대한 참조가 발생했을 경우 내가 선언한 타입선언을 참조할 수 있게 해줄 수 있다.
+
+
+## 미흡한 타입선언 보충하기
+
+예시 모음
+
+```ts
+declare module 'node-rsa' {
+  interface NodeRsa {
+    decrypt(message:string, encoding?:string):Buffer;
+    encrypt(message:string, encoding?:string):Buffer;
+  }
+
+  interface NodeRsaConstructor {
+    new (privateKey:string): NodeRsa;
+  }
+
+  let k:NodeRsaConstructor;
+  export = k; // CommonJS
+}
+```
+
+```ts
+declare module 'vue-material' {
+
+  import _Vue from "vue";
+
+  declare const VueMaterial: Plugin_2;
+  export default VueMaterial;
+}
+```

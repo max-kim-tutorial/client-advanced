@@ -13,6 +13,8 @@ emotion, jsx-transform, typescript를 모두 사용할 수 있는 프로젝트�
 
 종강시계 프로젝트에 둘 다 적용해 봤는데,,,, 체감상 뭔가 달라졌다, 눈에 띄게 빨라졌다(babel-typescript가 조금 더 빠른거 같긴 하다), 이게 더 좋다 이런 느낌은 잘 안든다. 그래도 preset-typescript를 쓰는 경우가 조금 더 쓰기 좋다고 느껴지는 지점이 있긴 했다.
 
+preset-typescript를 쓰면서 ts-jest를 babel-jest로 바꿨는데 이거는 확실히 빨라졌다.
+
 #### 1. ts-loader을 쓰는 경우
 
 ```json
@@ -124,19 +126,97 @@ babel/preset-typescript는 빌드시에 따로 타입체크를 하지 않기 때
   - declaration: d.ts가 생성되었는지 확인
 - typescript관련 eslint 설정을 빡세개 하고, 웹팩 등의 HMR과 연동해서 빌드할때마다 eslint 오류를 표시하도록 한다.
   - 이러면 왠만한건 다 잡을 수 있다
-
-
 ### Storybook 설정
 
+emotion의 경우 [storybook이 emotion11을 지원하지 않기 때문에](https://github.com/storybookjs/storybook/issues/7540#issuecomment-766982659), 스토리북의 바벨 설정에 `@emotion/babel-preset-css-prop` 프리셋을 넣어줘야 동작하는 듯 하다. 폴더 내부에 바벨 설정 파일을 넣어줘도 동작한다고 한다. 기본적으로 Storybook의 바벨 설정은 루트의 바벨 설정과는 자체적으로 다른 바벨 설정을 가지고 있다.
 
+```js
+module.exports = {
+  babel: async (options) => {
+    options.presets.push('@emotion/babel-preset-css-prop');
+    return options;
+  },
+}
+```
 ## React Code Manners
 
-### 기존 element의 prop type들
+React 코드를 작성하면서 든 생각들
+### HTML element의 prop type들
 
+[이 포스팅](https://jbee.io/web/components-should-be-flexible/)을 보고는 기존 HTML 요소의 속성을 컴포넌트의 prop으로 활용할 수 있을 때에는, prop 타이핑을 [@types/React](https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/react/index.d.ts)의 HTMLElementType을 이용해서 하면 경제적이겠다 싶었다. 
+선언된 타입 중 비슷한게 많아서 좀 헷갈리는 편이다.
+
+#### [`HTMLAttributes<HTML~Element>`](https://github.com/DefinitelyTyped/DefinitelyTyped/blob/5809b163a7d9c52388504ef4a24836a87a49664c/types/react/index.d.ts#L1827)
+
+`AriaAttributes`와 `DOMAttributes`를 상속하는 속성 타입으로, aria-role 관련 속성들과, on으로 시작하는 여러 이벤트 핸들러 속성을 포함하고 있는 타입이다. 다만 전달된 제네릭을 `HTMLAttriubtes`의 속성 내부에서는 사용을 안해서 각 모든 element들이 기본적으로 사용할 수 있는 속성들만 가지고 있다.
+
+```ts
+// HTML 요소로써 갖고 잇는 다른 요소들과의 공통 속성 요소들과
+// 해당 Element에 속한 이벤트 요소, ARIA 요소들을 포함한다.
+type CommonProps = HTMLAttributes<HTMLInputElement>;
+```
+
+#### [`~HTMLAttributes<HTML~Element>`](https://github.com/DefinitelyTyped/DefinitelyTyped/blob/5809b163a7d9c52388504ef4a24836a87a49664c/types/react/index.d.ts#L2200)
+
+이걸 써야 기존 HTML 속성에 들어있는 모든 속성을 타입으로 사용 가능하다. 제네릭에는 해당 요소의 Element타입을 넣는데, 이게 extends로 HTMLAttributes를 extend 한다. 위에서 설명한 공통요소, Aria요소, DOM이벤트 요소, 그리고 이 요소만 가지고 있는 유니크한 요소들이 타입의 속성으로 들어간다.
+
+```ts
+// 해당 요소의 유니크한 속성, 다른 요소들과의 공통 속성 요소
+// 해당 element에 속한 이벤트 요소, ARIA 요소 포함
+type InputProps = HTMLInputAttributes<HTMLInputElement>;
+```
+
+이 타입을 가지고 확장 prop 타입을 만드려면 다음과 같이 만들 수 있다.
+
+```ts
+export interface TextInputType extends InputHTMLAttributes<HTMLInputElement> {
+  size?: TextType;
+  widthFigure?: number;
+}
+
+export type TextInputType = {
+  size?: TextType;
+  widthFigure?: number;
+} & InputHTMLAttributes<HTMLInputElement>
+```
+
+이 두개의 차이는 인터페이스와 타입의 차이와도 비슷한 느낌이 있는데, prop타입이 잘못 짜졌을 경우 interface는 에러가 인터페이스 선언문에서 나지만 type의 경우는 프롭이 잘 못 입력된 컴포넌트에서 발생한다는 차이가 있다.
+
+또한 기본적으로 이러한 기본 속성 타입을 사용할때는 커스텀으로 설정하는 속성의 이름과 겹치면 안 된다. 인터페이스나 타입은 자동으로 오버라이딩 되지 않는다. 똑같은 이름으로 하고 싶으면 인터페이스를 수정하면 가능하지만, 이미 기존 속성이 맡은 역할이 있다는 점에서 같은 이름의 프롭을 넣는 것은 충돌의 여지가 높으니 unique한 이름을 적용하도록 하자.
 ### 추상화와 hooks
+
+기존에 Custom Hook을 좀 더러우면 거기다가 뭉쳐서 분리하려고 무지성으로 사용했었던(...)시절이 있었다. 이제는 너무 아무생각없이 훅 분리는 하지 않고... [이 컨퍼런스 세션](https://www.youtube.com/watch?v=edWbHp_k_9Y)을 보고 또 다시 반성하게 되었다. 
+
+리액트 개발하면서 hook으로 분리해야겠다고 생각했던 상황은 다음과 같다.
+
+- **컴포넌트 사이에서 재사용성이 높은 저수준의 로직** - 커스텀 훅의 취지에도 맞는 내용이다.. input이나 modal을 쓴다던가 하는
+- **useEffect를 사용해야 할 때** - 이거는 취향에 가까운데, useEffect는 react가 제공하는 기본 훅들 중에서 유일하게 네임스페이스가 없는 훅이라서 useEffect 콜백 내부와 디펜던시 배열을 봐야만 얘가 뭐하는 얜지 파악을 할 수 있다. 그런 파악을 돕기 위해 이름을 주면서 useEffect와 이와 관련있는 state을 훅으로 옮겨 사용하는 편이다.(use~Effect 요런식으로)
+  - useEffect 추상화는 추상화 비용을 지불하는게 크게 나쁘지 않다고 생각하는데 다른 분들은 어캐 생각하시는지...
+- **팀 컨벤션 등으로 추상화를 '약속'한 경우** : 아브라모브가 [Container-Presentational 구조를 더이상 추천하지 않는다고 말하면서](https://medium.com/@dan_abramov/smart-and-dumb-components-7ca2f9a7c7d0), React에서 새롭게 추상화를 할 수 있는 방법을 hook이라는 말을 했다. 커스텀 훅을 "추상화의 도구"라는 관점에서, Container-Presentation을 분리했던 과거의 유스케이스에 적용해보자면, 컴포넌트가 쓰는 쿼리같은 경우에는 팀의 니즈로 훅을 통해 컴포넌트와 분리해서 쓰자는 컨벤션을 만들 수도 있다.
+
+hook으로 분리해야 할까 말까 긴가민가 하는 상황이 있는데, 이런 상황에서도 판단하는 기준이 살짝 있다.
+
+- **컴포넌트 내부의 로직이 세부구현으로 무지 복잡해졌을 때는 컴포넌트로 추상화하는게 더 나을 수 있다** : 한 컴포넌트 내부의 로직이 무지 복잡해서 훅으로 추출해 분리하고 싶다면, 그 로직들이 혹시 컴포넌트의 자식 컴포넌트와 바인딩되는 로직이 아닌지, 혹은 특정 컴포넌트에 들어가는게 훨씬 더 좋은 추상화인지 생각할 필요가 있다. 굳이 훅으로 추상화할 필요가 없고 컴포넌트 내부의 로직을 위치하게 만드는게 더 가성비 좋은 추상화일 수 있다.
+  - 컴포넌트도 좋은 추상화의 매개다. 프롭으로 원하는 정보를 노출시킬 수 있기 때문에..
+- **파라미터가 없는 훅은 아예 만들지 않는게 더 나았을 확률이 높다** : 파라미터가 없다면 그 훅은 **외부에서 넣어야 하는 값이 없는 훅**이다. 추상화라는게 세부 구현은 감추고 필요한 부분만 인자로 노출시키는게 강점인데, 인자로 노출시킬게 없다면 추상화한 훅을 호출하는 부분에서는 **훅의 이름이나 반환값 말고는** 아무것도 그 훅에 대해서 알 수 있는게 없어지기 때문에 좋은 추상화가 아니다. 다만, 나같은 경우는 useEffect에 대해서는 아주 드물게 이런 훅을 쓰는 편이다.
+
+추상화의 비용은 추상화 단계 상승으로 인한 복잡성이다. 파일을 꼬리를 물며 하나를 더 봐야 하고, 파일이 어디에 있는지 한번 더 찾아야 한다는 말이다. 어떤 로직이 분리되어야만 한다면 그 이유를 깊게 생각해보아야 하고, 응집도를 약간 해치면서 추상화 비용을 지불해도 이익을 얻을 수 있는지 타진해보아야 한다.
 
 ### useMemo, useCallback의 기준 잡기
 
+useMemo와 useCallback은 발적화의 가능성이 높기 때문에 의미없는 useMemo나 useCallback은 없어야 한다. 또한, 매번 모든 순간 렌더링을 최적화할 필요도 없다. 
+
+- 필요없는 메모이제이션을 사용하지 않는다
+  - 특정 컴포넌트의 메모이제이션이 특정 프롭들 중 아주 잘 바뀌는 프롭과 의존하고 있다면 의미가 없다. 이거는 그냥 매 랜더링마다 함수가 만들어지는 로직과 다를게 없기 때문이다.
+  - 특정 컴포넌트가 단 한번만 렌더링되는 것이 보장되는 상황이라면 걔네도 굳이 메모이제이션이 필요 없을 것이다.
+- 레퍼런스 비교가 필요할때 메모이제이션을 사용한다 : (피하는게 좋겠지만) 개발하다보면 useEffect 등에 직접 state값을 넣는 것보다, state를 의존성으로 가지는 메모이제이션 로직을 useEffect에 넣어야 하는 상황도 충분히 생길 수 있다. 이때는 메모이제이션을 통해 useEffect가 제대로 동작하도록 함수를 useCallback등으로 감싸야 한다.
+- 렌더링을 줄여주는 방식으로 메모이제이션을 사용한다 : 유저 인터랙션(거듭된 토글이나 스크롤, 인터벌) 등으로 많은 리랜더링이 불가피할 경우 메모이제이션으로 최적화한다.
+  - 근데 사실 이것도 발적화일...수도 있다. 리랜더링 자체를 그렇게 너무 통제하려고 하지 말라는 개발자들도 좀 많은듯 함. 확실히 성능에 영향이 있는 경우에만 인스펙션해서 적용해야 할지도..? 이건 근데 실무를 더 경험해봐야 할 것 같기도 하다.
+- 부모 컴포넌트 랜더링이 너무 자주 일어나서 자식 컴포넌트의 랜더링도 덩달아 많이 일어나는 경우에는 React.memo 래퍼를 사용한다.
+  - 애초에 설계가 잘못된 걸수도 있다는 생각을 좀 해볼 수 있지 않을까 싶긴 하다. 불가피한 경우인지 타진한다!
+- 애초에 리렌더링을 많이 피해야한다 : 컴포넌트 내부 state은 정말 필요한 최소만 선언하고, 데이터 패칭 로직은 그것을 소비하는 컴포넌트와 최대한 가깝게 위치시키는게 좋다. 상태 끌어올리기를 신중하게 하자.
+
+### types와 interface
 ## Optimization
 
 ### font 최적화, 자원 preload, prefetch

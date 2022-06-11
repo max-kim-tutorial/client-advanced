@@ -61,6 +61,7 @@
   - client in the cloud의 약자인 CitC 툴은 수정한 코드만 다운로드받을 수 있게 하는 프록시다
   - 다이아몬드 의존성이나 상호참조 방지
 - 릴리즈를 따로 따서 trunk-based로 배포: 배포 위험성을 최소화, Main을 블락하지 않게, cherry pick
+- 복잡도가 늘어나고, 사람이 많아질수록 이를 지탱하는 견고한 시스템이 필요하다.
 
 ### [Using monorepos to increase velocity during early stages of product development](https://devblogs.microsoft.com/startups/using-monorepos-to-increase-velocity-during-early-stages-of-product-development/)
 
@@ -88,12 +89,27 @@
 - 무엇이든 끌어다 쓸 수 있게 된다는 측면에서 초기에는 개발이 빠르지만, 그로인해 만들어지는 스파게키 의존으로 점차 개발 생산성이 떨어진다.
 - 의존성이 복잡하면 의존성을 가짐으로써 동작하는 모종의 동작이 예측 가능한 소프트웨어를 만들기 힘들게 한다.
 
-### 남는 의문
+#### 남는 의문
 
 - 역할과 책임을 레이어에 어떻게 분산해놓을 것인가?
 - 자바에서는 좀더 세분화된 추상화가 가능함. 인터페이스는 낮은 계층에 놓고, 구현은 위 계층에서 하는 등...근데 노드에서는...안될테고...
 - Node에서는?? React에 의존하는 서비스 레이어는?? 멀티모듈보다 큰 모노레포 환경에서는??
 
-## [Yarn berry workspace를 활용한 프론트엔드 모노레포 구축기](https://techblog.woowahan.com/7976/)
+### [Yarn berry workspace를 활용한 프론트엔드 모노레포 구축기](https://techblog.woowahan.com/7976/)
 
 - 다른 방식으로 구축한 모노레포에서는 루트에 공통으로 쓸 패키지를 선언해 설치하고 각 프로젝트에서는 특별히 사용하는 패키지만 의존성에 추가하는 방식을 사용하는데, 이 방식은 node_modules가 패키지를 찾는 방식(= 호이스팅)에 기대고 있는 방식이라 yarn berry workspace로 구현한 모노레포에는 통하지 않습니다. 따라서 각 패키지에서 쓸 모듈은 루트에 패키지를 추가했는가와는 상관없이 무조건 하위 프로젝트의 의존성으로도 추가해 주어야 합니다.
+
+### [The Monorepo Blueprint – How To Create A Scalable Architecture For An Angular Monorepo](https://christianlydemann.com/how-to-create-a-scalable-architecture-for-an-angular-monorepo/)
+
+- 좋은 모듈 구조
+  - 추상화 레이어를 사용해 UI를 비즈니스 로직과 분리해야 한다
+  - UI는 상태 관리하는 구체적인 툴과 디커플되어야 한다
+  - 도메인 날리지를 반영하고 기술적인 세부사항을 반영해서는 안된다
+  - 설계는 모듈의 경계와 의존성 주입, 캡슐화를 강제할 수 있어야 한다.
+- UI와 데이터 엑세스 로직은 분리되어 모듈화되어야 하고, 어떠한 계층(sandbox)에서만 할당하는 식으로 서로 결합한다.
+- 라이브러리는 코드 공유를 위해서만 존재하는 것은 아니고, 모듈의 캡슐화를 강제하기 위해서도 존재한다. 프론트엔드에서는 이런 은닉을 index를 통해서 할 수 있다.
+- sandbox: 비즈니스 로직을 가지고있는 파사드. 사용하기 좋은 인터페이스를 통해 데이터를 가져온다. 샌드박스의 인터페이스는 기술적인 것을 모름
+  - 리덕스로 따지면 액션과 디스패치를 밖에서 가져오는 그런 느낌?
+  - 리모트 레이어를 파사드라고 부를 수 있나????? 뭐 그럴지도.. 인터페이스 쓸만한가?
+  - 앱에 영향을 미치지 않고 상태와 관련된 도구들을 갈아치울 수 있게끔
+- UI랑 비즈니스 로직 분리하고, UI랑 비즈니스 로직이 합쳐지는 레이어가 따로 있어서 거기에서 합쳐져가지구 앱으로 오는 방향
